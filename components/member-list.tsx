@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { api, formatCurrency, formatDate } from '@/lib/api';
 import type { Member } from '@/types/member';
-import { Edit, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CreditManagementModal } from './credit-management-modal';
 
 export default function MemberList() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -246,23 +247,16 @@ export default function MemberList() {
                   <TableCell>
                     <div className="flex space-x-2">
                       <Link href={`/members/${member.id}`}>
-                        <Button variant="outline" size="sm" className="cursor-pointer">
-                          <Eye className="w-4 h-4" />
+                        <Button variant="outline" size="sm">
+                          ดูรายละเอียด
                         </Button>
                       </Link>
                       <Link href={`/members/${member.id}/edit`}>
-                        <Button variant="outline" size="sm" className="cursor-pointer">
-                          <Edit className="w-4 h-4" />
+                        <Button variant="outline" size="sm">
+                          แก้ไข
                         </Button>
                       </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(member.id)}
-                        className="cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <CreditManagementModal member={member} onSuccess={loadMembers} />
                     </div>
                   </TableCell>
                 </TableRow>

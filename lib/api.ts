@@ -260,6 +260,36 @@ export const api = {
     const response = await apiClient.post('/member/verify-bank-account', data);
     return response.data;
   },
+
+  // Credit Management APIs
+  addCredit: async (id: string, data: { phone: string; amount: number; remarks?: string }) => {
+    const response = await apiClient.post(`/api/member/${id}/add-credit`, data);
+    return response.data;
+  },
+
+  removeCredit: async (id: string, data: { amount: number; remarks?: string }) => {
+    const response = await apiClient.post(`/api/member/${id}/remove-credit`, data);
+    return response.data;
+  },
+
+  cashoutCredit: async (id: string, data: { remarks?: string }) => {
+    const response = await apiClient.post(`/api/member/${id}/cashout-credit`, data);
+    return response.data;
+  },
+
+  deposit: async (data: { 
+    id?: string; 
+    phone: string; 
+    amount: number; 
+    currency: string; 
+    bankName: string; 
+    dateDeposit: string; 
+    timeDeposit: string; 
+    actualDateTime: string 
+  }) => {
+    const response = await apiClient.post('/api/member/deposit', data);
+    return response.data;
+  },
 };
 
 // Utility functions

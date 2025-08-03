@@ -1,11 +1,13 @@
 'use client';
 
+import { CreditManagementModal } from '@/components/credit-management-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api, formatCurrency, formatDate } from '@/lib/api';
 import type { Member } from '@/types/member';
-import { ArrowLeft, Edit, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -150,14 +152,14 @@ export default function MemberDetailPage() {
               )}
               รีเฟรชยอดเงิน
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/members/${memberId}/edit`)}
-              className="cursor-pointer"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              แก้ไข
-            </Button>
+            <div className="flex space-x-4">
+              <Link href={`/members/${member.id}/edit`}>
+                <Button>
+                  แก้ไขข้อมูล
+                </Button>
+              </Link>
+              <CreditManagementModal member={member} onSuccess={() => loadBalance(memberId)} />
+            </div>
             <Button
               variant="outline"
               onClick={handleDelete}
