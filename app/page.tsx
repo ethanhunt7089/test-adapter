@@ -1,103 +1,121 @@
-import Image from "next/image";
+import TokenManager from '@/components/token-manager';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, Plus, Settings, Users } from 'lucide-react';
+import Link from 'next/link';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="container mx-auto py-8">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold">Bank Adapter Test Dashboard</h1>
+          <p className="text-xl text-muted-foreground">
+            ทดสอบการเชื่อมต่อกับ Bank Adapter API
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Token Manager */}
+        <div className="flex justify-center">
+          <TokenManager />
+        </div>
+
+        {/* Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Bank Adapter Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>API Endpoint:</span>
+                  <code className="text-sm bg-muted px-2 py-1 rounded">
+                    http://localhost:3000
+                  </code>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Status:</span>
+                  <span className="text-green-600 font-medium">พร้อมใช้งาน</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                Backoffice Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>API Endpoint:</span>
+                  <code className="text-sm bg-muted px-2 py-1 rounded">
+                    http://localhost:5173
+                  </code>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Status:</span>
+                  <span className="text-green-600 font-medium">พร้อมใช้งาน</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-semibold">เริ่มต้นใช้งาน</h2>
+          <div className="flex justify-center space-x-4">
+            <Link href="/members">
+              <Button size="lg" className="cursor-pointer">
+                <Users className="w-4 h-4 mr-2" />
+                ดูรายการสมาชิก
+              </Button>
+            </Link>
+            <Link href="/members/create">
+              <Button size="lg" variant="outline" className="cursor-pointer">
+                <Plus className="w-4 h-4 mr-2" />
+                เพิ่มสมาชิกใหม่
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>คำแนะนำการใช้งาน</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <h3 className="font-semibold">1. ตั้งค่า Token</h3>
+              <p className="text-sm text-muted-foreground">
+                กรอก Token ของ Bank Adapter ในช่องด้านบน และกด "บันทึก"
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold">2. ทดสอบการเชื่อมต่อ</h3>
+              <p className="text-sm text-muted-foreground">
+                กดปุ่ม "ทดสอบ" เพื่อตรวจสอบว่า Token ใช้งานได้
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold">3. ใช้งาน CRUD</h3>
+              <p className="text-sm text-muted-foreground">
+                เริ่มต้นใช้งานฟีเจอร์ CRUD ผ่านปุ่มด้านล่าง
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
