@@ -203,21 +203,61 @@ export const api = {
     }
   },
 
-  // POST - สร้างสมาชิกใหม่ (ถ้ามี API)
+  // POST - สร้างสมาชิกใหม่
   createMember: async (data: CreateMemberRequest): Promise<ApiResponse<Member>> => {
     const response = await apiClient.post('/member/create', data);
     return response.data;
   },
 
-  // PUT - อัปเดตข้อมูลสมาชิก (ถ้ามี API)
+  // PUT - อัปเดตข้อมูลสมาชิก
   updateMember: async (data: UpdateMemberRequest): Promise<ApiResponse<Member>> => {
     const response = await apiClient.put(`/member/${data.id}`, data);
     return response.data;
   },
 
-  // DELETE - ลบสมาชิก (ถ้ามี API)
+  // DELETE - ลบสมาชิก
   deleteMember: async (id: string): Promise<ApiResponse<{ success: boolean }>> => {
     const response = await apiClient.delete(`/member/${id}`);
+    return response.data;
+  },
+
+  // GET - ดึงรายการธนาคารลาว
+  getLaoBanks: async (): Promise<ApiResponse<Array<{ value: string; label: string }>>> => {
+    const response = await apiClient.get('/bank/lao/list');
+    return response.data;
+  },
+
+  // GET - ดึงรายการสกุลเงิน
+  getCurrencies: async (): Promise<ApiResponse<Array<{ value: string; label: string }>>> => {
+    const response = await apiClient.get('/currency/list');
+    return response.data;
+  },
+
+  // GET - ดึงรายการกลุ่มลูกค้า
+  getCustomerGroups: async (): Promise<ApiResponse<Array<any>>> => {
+    const response = await apiClient.get('/customer-group/list');
+    return response.data;
+  },
+
+  // POST - ตรวจสอบบัญชีธนาคาร
+  checkAccount: async (data: {
+    bankAccountNumber: string;
+    bankName: string;
+    bankType: string;
+    phone: string;
+  }): Promise<ApiResponse<{ message: string }>> => {
+    const response = await apiClient.post('/member/check-account', data);
+    return response.data;
+  },
+
+  // POST - ตรวจสอบบัญชีธนาคาร (alias)
+  verifyBankAccount: async (data: {
+    bankAccountNumber: string;
+    bankName: string;
+    bankType: string;
+    phone: string;
+  }): Promise<ApiResponse<{ message: string }>> => {
+    const response = await apiClient.post('/member/verify-bank-account', data);
     return response.data;
   },
 };

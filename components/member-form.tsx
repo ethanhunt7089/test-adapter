@@ -6,10 +6,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
-import type { CreateMemberRequest, Member, UpdateMemberRequest } from '@/types/member';
+import type { BankOption, CreateMemberRequest, CurrencyOption, CustomerGroup, Member, RegisterChannel, UpdateMemberRequest } from '@/types/member';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
@@ -18,9 +18,12 @@ const memberSchema = z.object({
   name: z.string().min(1, 'กรุณากรอกชื่อ'),
   username: z.string().min(1, 'กรุณากรอกชื่อผู้ใช้'),
   phone: z.string().min(10, 'กรุณากรอกเบอร์โทรให้ถูกต้อง'),
+  password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว'),
   bankAccountNo: z.string().min(1, 'กรุณากรอกเลขบัญชีธนาคาร'),
   bankCode: z.string().min(1, 'กรุณาเลือกธนาคาร'),
   currency: z.string().min(1, 'กรุณาเลือกสกุลเงิน'),
+  bcelOneId: z.string().optional(),
+  registerChannelId: z.string().optional(),
 });
 
 type MemberFormData = z.infer<typeof memberSchema>;
@@ -30,35 +33,13 @@ interface MemberFormProps {
   mode: 'create' | 'edit';
 }
 
-const bankOptions = [
-  { value: 'BCEL', label: 'BCEL BANK (BCEL)' },
-  { value: 'JDB', label: 'JOINT DEVELOPMENT BANK (JDB)' },
-  { value: 'LDB', label: 'LAO DEVELOPMENT BANK (LDB)' },
-  { value: 'LVB', label: 'LAOS-VIETNAM BANK (LVB)' },
-  { value: 'ACLB', label: 'ACLEDA BANK LAO (ACLB)' },
-  { value: 'APB', label: 'AGRICULTURAL PROMOTION BANK (APB)' },
-  { value: 'BIC', label: 'BIC Bank Lao Co. Ltd. (BIC)' },
-  { value: 'BOC', label: 'Bank of China (Hong Kong) Ltd (BOC)' },
-  { value: 'ICBC', label: 'Industrial and Commercial Bank of China Ltd (ICBC)' },
-  { value: 'IDCB', label: 'INDOCHINA BANK LTD (IDCB)' },
-  { value: 'KTB', label: 'KASIKORNTHAI Bank Sole Ltd. (KTB)' },
-  { value: 'MRB', label: 'MARUHAN Japan Bank Lao Co., Ltd (MRB)' },
-  { value: 'MBB', label: 'Military Commercial Joint Stock Ban (MBB)' },
-  { value: 'PBB', label: 'Public Bank Lao Ltd. (PBB)' },
-  { value: 'SCB', label: 'SACOMBANK LAO (SCB)' },
-  { value: 'STB', label: 'ST Bank Ltd. (STB)' },
-  { value: 'VTB', label: 'Vietinbank Lao Ltd. (VTB)' },
-  { value: 'BFL', label: 'Banque Franco-Lao Ltd. (BFL)' },
-  { value: 'PSV', label: 'PHONGSAVANH BANK LTD (PSV)' }
-];
-
-const currencyOptions = [
-  { value: 'LAK', label: 'LAK' },
-  { value: 'THB', label: 'THB' }
-];
-
 export default function MemberForm({ member, mode }: MemberFormProps) {
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [banks, setBanks] = useState<BankOption[]>([]);
+  const [currencies, setCurrencies] = useState<CurrencyOption[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>([]);
+  const [registerChannels, setRegisterChannels] = useState<RegisterChannel[]>([]);
   const router = useRouter();
 
   const form = useForm<MemberFormData>({
@@ -67,11 +48,93 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
       name: member?.name || '',
       username: member?.username || '',
       phone: member?.phone || '',
+      password: member?.password || '',
       bankAccountNo: member?.bankAccountNo || '',
       bankCode: member?.bankCode || '',
       currency: member?.currency || 'LAK',
+      bcelOneId: member?.bcelOneId || '',
+      registerChannelId: member?.registerChannelId || '',
     },
   });
+
+  // Load data on component mount
+  useEffect(() => {
+    loadFormData();
+  }, []);
+
+  const loadFormData = async () => {
+    try {
+      // Load banks
+      const banksResponse = await api.getLaoBanks();
+      if (banksResponse.success) {
+        setBanks(banksResponse.data);
+      }
+
+      // Load currencies
+      const currenciesResponse = await api.getCurrencies();
+      if (currenciesResponse.success) {
+        setCurrencies(currenciesResponse.data);
+      }
+
+      // Load customer groups
+      const customerGroupsResponse = await api.getCustomerGroups();
+      if (customerGroupsResponse.success) {
+        setCustomerGroups(customerGroupsResponse.data);
+      }
+
+      // TODO: Add register channels API when available
+      // For now, use empty array
+      setRegisterChannels([]);
+    } catch (error) {
+      console.error('Error loading form data:', error);
+      toast.error('ไม่สามารถโหลดข้อมูลได้');
+    }
+  };
+
+  const verifyAccount = async () => {
+    const bankCode = form.getValues('bankCode');
+    const bankAccountNo = form.getValues('bankAccountNo');
+    const currency = form.getValues('currency');
+    const phone = form.getValues('username');
+
+    if (!bankCode) {
+      toast.error('กรุณาเลือกธนาคารก่อน');
+      return;
+    }
+
+    if (!bankAccountNo) {
+      toast.error('กรุณากรอกเลขบัญชีก่อน');
+      return;
+    }
+
+    if (!phone) {
+      toast.error('กรุณากรอกเบอร์โทรก่อน');
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      const response = await api.checkAccount({
+        bankAccountNumber: bankAccountNo,
+        bankName: bankCode,
+        bankType: currency,
+        phone: phone,
+      });
+
+      if (response.success) {
+        // Auto-fill the name field
+        form.setValue('name', response.data.message);
+        toast.success('ตรวจสอบบัญชีสำเร็จ');
+      } else {
+        toast.error(response.data.message || 'ไม่สามารถตรวจสอบบัญชีได้');
+      }
+    } catch (error: any) {
+      console.error('Error verifying account:', error);
+      toast.error('เกิดข้อผิดพลาดในการตรวจสอบบัญชี');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const onSubmit = async (data: MemberFormData) => {
     try {
@@ -91,9 +154,12 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
           name: data.name,
           username: data.username,
           phone: data.phone,
+          password: data.password,
           bankAccountNo: data.bankAccountNo,
           bankCode: data.bankCode,
           currency: data.currency,
+          bcelOneId: data.bcelOneId,
+          registerChannelId: data.registerChannelId,
         };
 
         await api.createMember(createData);
@@ -104,9 +170,12 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
           name: data.name,
           username: data.username,
           phone: data.phone,
+          password: data.password,
           bankAccountNo: data.bankAccountNo,
           bankCode: data.bankCode,
           currency: data.currency,
+          bcelOneId: data.bcelOneId,
+          registerChannelId: data.registerChannelId,
         };
 
         await api.updateMember(updateData);
@@ -133,116 +202,182 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ชื่อ</FormLabel>
-                      <FormControl>
-                        <Input placeholder="กรอกชื่อ" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ชื่อผู้ใช้</FormLabel>
-                      <FormControl>
-                        <Input placeholder="กรอกชื่อผู้ใช้" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
+              {/* Phone Number */}
               <FormField
                 control={form.control}
-                name="phone"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>เบอร์โทรศัพท์</FormLabel>
+                    <FormLabel>เบอร์โทร</FormLabel>
                     <FormControl>
-                      <Input placeholder="กรอกเบอร์โทรศัพท์" {...field} />
+                      <Input placeholder="0812345678" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              {/* Password */}
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>รหัสผ่าน</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="รหัสผ่าน 6 หลัก" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Bank */}
+              <FormField
+                control={form.control}
+                name="bankCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ธนาคาร</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกธนาคาร" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {banks.map((bank) => (
+                          <SelectItem key={bank.value} value={bank.value}>
+                            {bank.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Account Number with Verify Button */}
               <FormField
                 control={form.control}
                 name="bankAccountNo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>เลขบัญชีธนาคาร</FormLabel>
+                    <FormLabel>เลขบัญชี</FormLabel>
+                    <div className="flex space-x-2">
+                      <FormControl>
+                        <Input placeholder="เลขบัญชีธนาคาร" {...field} />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={verifyAccount}
+                        disabled={verifying}
+                        className="cursor-pointer"
+                      >
+                        {verifying ? 'กำลังตรวจสอบ...' : 'ตรวจสอบ'}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Name */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ชื่อ</FormLabel>
                     <FormControl>
-                      <Input placeholder="กรอกเลขบัญชีธนาคาร" {...field} />
+                      <Input placeholder="กรอกชื่อ" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="bankCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ธนาคาร</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="เลือกธนาคาร" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {bankOptions.map((bank) => (
-                            <SelectItem key={bank.value} value={bank.value}>
-                              {bank.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Currency */}
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>สกุลเงิน</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกสกุลเงิน" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {currencies.map((currency) => (
+                          <SelectItem key={currency.value} value={currency.value}>
+                            {currency.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>สกุลเงิน</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="เลือกสกุลเงิน" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {currencyOptions.map((currency) => (
-                            <SelectItem key={currency.value} value={currency.value}>
-                              {currency.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              {/* Customer Group */}
+              <FormField
+                control={form.control}
+                name="bcelOneId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>กลุ่มลูกค้า</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกกลุ่มลูกค้า" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customerGroups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.picklistLabel}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              {/* Source */}
+              <FormField
+                control={form.control}
+                name="registerChannelId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>แหล่งที่มา</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกแหล่งที่มา" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {registerChannels.map((channel) => (
+                          <SelectItem key={channel.id} value={channel.id}>
+                            {channel.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Submit Buttons */}
               <div className="flex justify-end space-x-4">
                 <Button
                   type="button"
