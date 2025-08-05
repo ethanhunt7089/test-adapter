@@ -158,7 +158,7 @@ export default function MemberDetailPage() {
                   แก้ไขข้อมูล
                 </Button>
               </Link>
-              <CreditManagementModal member={member} onSuccess={() => loadBalance(memberId)} />
+              <CreditManagementModal member={member} />
             </div>
             <Button
               variant="outline"

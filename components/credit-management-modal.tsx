@@ -20,6 +20,21 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
   const [isOpen, setIsOpen] = useState(false);
   const [action, setAction] = useState<'add' | 'remove' | 'cashout' | 'deposit'>('deposit');
   const [loading, setLoading] = useState(false);
+  // สร้างฟังก์ชัน reset form
+  const resetForm = () => {
+    setFormData({
+      amount: '0',
+      phone: member.username || '',
+      remarks: '',
+      currency: 'LAK',
+      bankName: 'BCEL',
+      dateDeposit: new Date().toISOString().split('T')[0],
+      timeDeposit: new Date().toTimeString().split(' ')[0],
+      actualDateTime: new Date().toISOString()
+    });
+    setAction('deposit');
+  };
+
   const [formData, setFormData] = useState({
     amount: '0',
     phone: member.username || '',
@@ -47,10 +62,18 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
           break;
 
         case 'remove':
+          console.log('🔍 [TEST-ADAPTER] Attempting to remove credit:', {
+            memberId: member.id,
+            amount: parseFloat(formData.amount),
+            remarks: formData.remarks
+          });
+          
           await api.removeCredit(member.id!, {
             amount: parseFloat(formData.amount),
             remarks: formData.remarks
           });
+          
+          console.log('✅ [TEST-ADAPTER] Remove credit successful');
           toast.success('ลดเครดิตสำเร็จ');
           break;
 
@@ -87,7 +110,8 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
       }
 
       setIsOpen(false);
-      onSuccess?.();
+      resetForm(); // Reset form หลังจากทำงานเสร็จ
+      // ไม่ต้องเรียก onSuccess เพื่อไม่ให้โหลดข้อมูลใหม่
     } catch (error: any) {
       toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
     } finally {
@@ -96,7 +120,12 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) {
+        resetForm(); // Reset form เมื่อปิด modal
+      }
+    }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           จัดการเครดิต
@@ -210,7 +239,10 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => {
+              setIsOpen(false);
+              resetForm(); // Reset form เมื่อกดยกเลิก
+            }}>
               ยกเลิก
             </Button>
             <Button type="submit" disabled={loading}>

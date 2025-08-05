@@ -290,7 +290,7 @@ export default function MemberList() {
                           แก้ไข
                         </Button>
                       </Link>
-                      <CreditManagementModal member={member} onSuccess={loadMembers} />
+                      <CreditManagementModal member={member} />
                     </div>
                   </TableCell>
                 </TableRow>
