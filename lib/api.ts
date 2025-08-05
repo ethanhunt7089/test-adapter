@@ -311,7 +311,19 @@ export const api = {
     timeDeposit: string; 
     actualDateTime: string 
   }) => {
-    const response = await apiClient.post('/api/member/deposit', data);
+    // แปลงข้อมูลให้ตรงกับ backoffice format
+    const payload = {
+      Id: data.id || '',
+      Phone: data.phone,
+      MoneyDeposit: data.amount,  // ✅ ส่งเป็น number
+      Currency: data.currency,
+      BankName: data.bankName,
+      DateDeposit: data.dateDeposit,
+      TimeDeposit: data.timeDeposit,
+      ActualDateTime: data.actualDateTime,
+    };
+    
+    const response = await apiClient.post('/api/member/deposit', payload);
     return response.data;
   },
 };

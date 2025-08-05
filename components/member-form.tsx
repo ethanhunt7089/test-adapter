@@ -360,57 +360,7 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
                 )}
               />
 
-              {/* BCEL Bank */}
-              <FormField
-                control={form.control}
-                name="bcelOneId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>BCEL Bank</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือก BCEL Bank" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {bcelBanks.map((bank) => (
-                          <SelectItem key={bank.id} value={bank.id}>
-                            {bank.customerGroupName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
-              {/* Source */}
-              <FormField
-                control={form.control}
-                name="registerChannelId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>แหล่งที่มา</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกแหล่งที่มา" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {registerChannels.map((channel) => (
-                          <SelectItem key={channel.id} value={channel.id}>
-                            {channel.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Submit Buttons */}
               <div className="flex justify-end space-x-4">

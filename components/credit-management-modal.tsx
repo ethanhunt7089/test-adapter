@@ -18,14 +18,14 @@ interface CreditManagementModalProps {
 
 export function CreditManagementModal({ member, onSuccess }: CreditManagementModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [action, setAction] = useState<'add' | 'remove' | 'cashout' | 'deposit'>('add');
+  const [action, setAction] = useState<'add' | 'remove' | 'cashout' | 'deposit'>('deposit');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    amount: '',
+    amount: '0',
     phone: member.username || '',
     remarks: '',
-    currency: 'THB',
-    bankName: '',
+    currency: 'LAK',
+    bankName: 'BCEL',
     dateDeposit: new Date().toISOString().split('T')[0],
     timeDeposit: new Date().toTimeString().split(' ')[0],
     actualDateTime: new Date().toISOString()
@@ -62,14 +62,25 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
           break;
 
         case 'deposit':
+          // ตรวจสอบข้อมูลที่จำเป็น
+          if (!formData.phone || !formData.amount || parseFloat(formData.amount) <= 0) {
+            toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
+          }
+          
+          // สร้าง actualDateTime จาก dateDeposit และ timeDeposit
+          const depositDate = new Date(formData.dateDeposit);
+          const [hours, minutes] = formData.timeDeposit.split(':');
+          depositDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          
           await api.deposit({
             phone: formData.phone,
             amount: parseFloat(formData.amount),
-            currency: formData.currency,
-            bankName: formData.bankName,
+            currency: formData.currency || 'LAK',
+            bankName: formData.bankName || 'BCEL',
             dateDeposit: formData.dateDeposit,
             timeDeposit: formData.timeDeposit,
-            actualDateTime: formData.actualDateTime
+            actualDateTime: depositDate.toISOString()
           });
           toast.success('เติมเงินสำเร็จ');
           break;
@@ -141,7 +152,7 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
               <div className="space-y-2">
                 <Label>เบอร์โทรศัพท์</Label>
                 <Input
-                  value={formData.phone}
+                  value={member.username || formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="เบอร์โทรศัพท์"
                   required
@@ -150,27 +161,22 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
 
               <div className="space-y-2">
                 <Label>สกุลเงิน</Label>
-                <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="THB">THB</SelectItem>
-                    <SelectItem value="LAK">LAK</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  value="LAK"
+                  disabled
+                  className="bg-gray-100"
+                />
               </div>
-
+              
               <div className="space-y-2">
                 <Label>ธนาคาร</Label>
                 <Input
-                  value={formData.bankName}
-                  onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                  placeholder="ชื่อธนาคาร"
-                  required
+                  value="BCEL"
+                  disabled
+                  className="bg-gray-100"
                 />
               </div>
-
+              
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label>วันที่</Label>
@@ -182,7 +188,7 @@ export function CreditManagementModal({ member, onSuccess }: CreditManagementMod
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>เวลา</Label>
+                  <Label>เวลาโอน</Label>
                   <Input
                     type="time"
                     value={formData.timeDeposit}
