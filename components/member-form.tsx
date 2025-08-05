@@ -15,13 +15,13 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 const memberSchema = z.object({
-  name: z.string().min(1, 'กรุณากรอกชื่อ'),
-  username: z.string().min(1, 'กรุณากรอกชื่อผู้ใช้'),
-  phone: z.string().min(10, 'กรุณากรอกเบอร์โทรให้ถูกต้อง'),
-  password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัว'),
-  bankAccountNo: z.string().min(1, 'กรุณากรอกเลขบัญชีธนาคาร'),
-  bankCode: z.string().min(1, 'กรุณาเลือกธนาคาร'),
-  currency: z.string().min(1, 'กรุณาเลือกสกุลเงิน'),
+  name: z.string().optional(),
+  username: z.string().optional(),
+  phone: z.string().optional(),
+  password: z.string().optional(),
+  bankAccountNo: z.string().optional(),
+  bankCode: z.string().optional(),
+  currency: z.string().optional(),
   bcelOneId: z.string().optional(),
   registerChannelId: z.string().optional(),
 });
@@ -39,6 +39,7 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [currencies, setCurrencies] = useState<CurrencyOption[]>([]);
   const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>([]);
+  const [bcelBanks, setBcelBanks] = useState<Array<{ id: string; customerGroupName: string }>>([]);
   const [registerChannels, setRegisterChannels] = useState<RegisterChannel[]>([]);
   const router = useRouter();
 
@@ -82,6 +83,12 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
         setCustomerGroups(customerGroupsResponse.data);
       }
 
+      // Load BCEL banks
+      const bcelBanksResponse = await api.getBcelBanks();
+      if (bcelBanksResponse.success) {
+        setBcelBanks(bcelBanksResponse.data);
+      }
+
       // TODO: Add register channels API when available
       // For now, use empty array
       setRegisterChannels([]);
@@ -92,22 +99,27 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
   };
 
   const verifyAccount = async () => {
-    const bankCode = form.getValues('bankCode');
-    const bankAccountNo = form.getValues('bankAccountNo');
-    const currency = form.getValues('currency');
-    const phone = form.getValues('username');
+    const bankCode = form.getValues('bankCode') || '';
+    const bankAccountNo = form.getValues('bankAccountNo') || '';
+    const currency = form.getValues('currency') || '';
+    const phone = form.getValues('username') || '';
+
+    console.log('🔍 [DEBUG] verifyAccount called with:', { bankCode, bankAccountNo, currency, phone });
 
     if (!bankCode) {
+      console.log('🔍 [DEBUG] Showing toast: กรุณาเลือกธนาคารก่อน');
       toast.error('กรุณาเลือกธนาคารก่อน');
       return;
     }
 
     if (!bankAccountNo) {
+      console.log('🔍 [DEBUG] Showing toast: กรุณากรอกเลขบัญชีก่อน');
       toast.error('กรุณากรอกเลขบัญชีก่อน');
       return;
     }
 
     if (!phone) {
+      console.log('🔍 [DEBUG] Showing toast: กรุณากรอกเบอร์โทรก่อน');
       toast.error('กรุณากรอกเบอร์โทรก่อน');
       return;
     }
@@ -121,16 +133,39 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
         phone: phone,
       });
 
+      console.log('🔍 [DEBUG] Response:', response);
+      
       if (response.success) {
         // Auto-fill the name field
         form.setValue('name', response.data.message);
         toast.success('ตรวจสอบบัญชีสำเร็จ');
       } else {
-        toast.error(response.data.message || 'ไม่สามารถตรวจสอบบัญชีได้');
+        // แสดง error message จาก Backoffice
+        const errorMessage = response.data?.message || 'ไม่สามารถตรวจสอบบัญชีได้';
+        toast.error(errorMessage);
+        
+        // ถ้าเป็น error เกี่ยวกับข้อมูลที่ถูกใช้ไปแล้ว ให้แสดงรายละเอียด
+        if (errorMessage.includes('ถูกใช้ไปแล้ว')) {
+          console.log('ข้อมูลที่ถูกใช้ไปแล้ว:', {
+            bankAccountNumber: bankAccountNo,
+            bankName: bankCode,
+            phone: phone
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error verifying account:', error);
-      toast.error('เกิดข้อผิดพลาดในการตรวจสอบบัญชี');
+      
+      // ตรวจสอบ error response จาก Bank Adapter
+      if (error.response?.data?.data?.message) {
+        toast.error(error.response.data.data.message);
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error('เกิดข้อผิดพลาดในการตรวจสอบบัญชี');
+      }
     } finally {
       setVerifying(false);
     }
@@ -151,15 +186,15 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
 
       if (mode === 'create') {
         const createData: CreateMemberRequest = {
-          name: data.name,
-          username: data.username,
-          phone: data.phone,
-          password: data.password,
-          bankAccountNo: data.bankAccountNo,
-          bankCode: data.bankCode,
-          currency: data.currency,
-          bcelOneId: data.bcelOneId,
-          registerChannelId: data.registerChannelId,
+          name: data.name || '',
+          username: data.username || '',
+          phone: data.username || '', // ใช้ username เป็น phone
+          password: data.password || '',
+          bankAccountNo: data.bankAccountNo || '',
+          bankCode: data.bankCode || '',
+          currency: data.currency || 'LAK',
+          bcelOneId: data.bcelOneId || '',
+          registerChannelId: data.registerChannelId || '',
         };
 
         await api.createMember(createData);
@@ -167,15 +202,15 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
       } else {
         const updateData: UpdateMemberRequest = {
           id: member!.id,
-          name: data.name,
-          username: data.username,
-          phone: data.phone,
-          password: data.password,
-          bankAccountNo: data.bankAccountNo,
-          bankCode: data.bankCode,
-          currency: data.currency,
-          bcelOneId: data.bcelOneId,
-          registerChannelId: data.registerChannelId,
+          name: data.name || '',
+          username: data.username || '',
+          phone: data.phone || '',
+          password: data.password || '',
+          bankAccountNo: data.bankAccountNo || '',
+          bankCode: data.bankCode || '',
+          currency: data.currency || 'LAK',
+          bcelOneId: data.bcelOneId || undefined, // ใช้ undefined เพื่อให้ตรงกับ interface
+          registerChannelId: data.registerChannelId || undefined, // ใช้ undefined เพื่อให้ตรงกับ interface
         };
 
         await api.updateMember(updateData);
@@ -325,23 +360,23 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
                 )}
               />
 
-              {/* Customer Group */}
+              {/* BCEL Bank */}
               <FormField
                 control={form.control}
                 name="bcelOneId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>กลุ่มลูกค้า</FormLabel>
+                    <FormLabel>BCEL Bank</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="เลือกกลุ่มลูกค้า" />
+                          <SelectValue placeholder="เลือก BCEL Bank" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {customerGroups.map((group) => (
-                          <SelectItem key={group.id} value={group.id}>
-                            {group.picklistLabel}
+                        {bcelBanks.map((bank) => (
+                          <SelectItem key={bank.id} value={bank.id}>
+                            {bank.customerGroupName}
                           </SelectItem>
                         ))}
                       </SelectContent>

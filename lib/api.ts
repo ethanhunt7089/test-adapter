@@ -1,10 +1,10 @@
 import type {
-    ApiResponse,
-    CreateMemberRequest,
-    Member,
-    MemberBalanceResponse,
-    MemberListResponse,
-    UpdateMemberRequest
+  ApiResponse,
+  CreateMemberRequest,
+  Member,
+  MemberBalanceResponse,
+  MemberListResponse,
+  UpdateMemberRequest
 } from '@/types/member';
 import axios from 'axios';
 
@@ -63,10 +63,19 @@ export const clearAuthToken = () => {
 };
 
 export const api = {
-  // GET - ดึงรายการสมาชิกทั้งหมด
-  getMembers: async (): Promise<ApiResponse<MemberListResponse>> => {
+  // GET - ดึงรายการสมาชิกทั้งหมด (รองรับ pagination และ search)
+  getMembers: async (page = 1, limit = 10, search = ''): Promise<ApiResponse<MemberListResponse>> => {
     try {
-      const response = await apiClient.get('/member/list');
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      
+      if (search) {
+        params.append('search', search);
+      }
+      
+      const response = await apiClient.get(`/member/list?${params.toString()}`);
       // จัดการ nested data structure
       const responseData = response.data;
       if (responseData.data && responseData.data.data) {
@@ -81,7 +90,16 @@ export const api = {
         console.log('API timeout, retrying...');
         // ลองใหม่อีกครั้ง
         try {
-          const retryResponse = await apiClient.get('/member/list');
+          const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+          });
+          
+          if (search) {
+            params.append('search', search);
+          }
+          
+          const retryResponse = await apiClient.get(`/member/list?${params.toString()}`);
           const responseData = retryResponse.data;
           if (responseData.data && responseData.data.data) {
             return {
@@ -230,6 +248,12 @@ export const api = {
   // GET - ดึงรายการสกุลเงิน
   getCurrencies: async (): Promise<ApiResponse<Array<{ value: string; label: string }>>> => {
     const response = await apiClient.get('/currency/list');
+    return response.data;
+  },
+
+  // GET - ดึงรายการ BCEL Banks
+  getBcelBanks: async (): Promise<ApiResponse<Array<{ id: string; customerGroupName: string }>>> => {
+    const response = await apiClient.get('/bcel-bank/list');
     return response.data;
   },
 

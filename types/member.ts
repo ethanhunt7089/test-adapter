@@ -54,10 +54,18 @@ export interface ApiResponse<T> {
 export interface MemberListResponse {
   members: Member[];
   summary: {
-    today: number;
-    week: number;
-    month: number;
-    total: number;
+    memberTodayCount: number;
+    memberWeekCount: number;
+    memberMonthCount: number;
+    memberAllCount: number;
+  };
+  pagination?: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
 }
 

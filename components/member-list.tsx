@@ -30,10 +30,10 @@ export default function MemberList() {
   const availablePageSizes = [10, 20, 50, 100];
 
   useEffect(() => {
-    loadMembers();
+    loadMembers(1, itemsPerPage);
   }, []);
 
-  const loadMembers = async () => {
+  const loadMembers = async (page = 1, limit = itemsPerPage, search = '') => {
     try {
       setLoading(true);
       
@@ -46,11 +46,31 @@ export default function MemberList() {
         }
       }
       
-      const response = await api.getMembers();
+             console.log('🔍 [DEBUG] Calling API with:', { page, limit, search });
+       const response = await api.getMembers(page, limit, search);
       
       if (response.success) {
         setMembers(response.data.members);
-        setSummary(response.data.summary);
+        // แปลง field names ให้ตรงกับ API
+        setSummary({
+          today: response.data.summary.memberTodayCount || 0,
+          week: response.data.summary.memberWeekCount || 0,
+          month: response.data.summary.memberMonthCount || 0,
+          total: response.data.summary.memberAllCount || 0,
+        });
+        
+        // อัพเดท pagination จาก API
+        if (response.data.pagination) {
+          setPagination(response.data.pagination);
+          // ใช้ page ที่ส่งไป ไม่ใช่ที่ return กลับมา
+          setCurrentPage(page);
+          setItemsPerPage(response.data.pagination.limit);
+          console.log('🔍 [DEBUG] Updated pagination:', { 
+            requestedPage: page, 
+            responsePage: response.data.pagination.page,
+            currentPage: page 
+          });
+        }
       } else {
         toast.error('ไม่สามารถโหลดข้อมูลสมาชิกได้');
       }
@@ -71,17 +91,20 @@ export default function MemberList() {
     }
   };
 
-  const filteredMembers = (members || []).filter(member =>
-    (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (member.username?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (member.agentUsername?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  // Server-side pagination state
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
 
-  // Pagination calculation
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const lastPage = Math.ceil(filteredMembers.length / itemsPerPage);
-  const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+  // ใช้ข้อมูลจาก API โดยตรง (server-side pagination)
+  const filteredMembers = members;
+  const lastPage = pagination.totalPages;
+  const paginatedMembers = members; // ข้อมูลมาจาก API แล้ว
 
   // Generate selectable pages
   const selectablePages = (() => {
@@ -93,12 +116,18 @@ export default function MemberList() {
   // Handle page change
   const goToPage = (page: number) => {
     setCurrentPage(page);
+    loadMembers(page, itemsPerPage, searchTerm);
   };
 
-  // Reset to first page when search changes
+  // Server-side search with debounce
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      loadMembers(1, itemsPerPage, searchTerm);
+    }, 500); // รอ 500ms หลังหยุดพิมพ์
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, itemsPerPage]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('คุณต้องการลบสมาชิกนี้หรือไม่?')) return;
@@ -106,7 +135,7 @@ export default function MemberList() {
     try {
       await api.deleteMember(id);
       toast.success('ลบสมาชิกสำเร็จ');
-      loadMembers();
+      loadMembers(currentPage, itemsPerPage, searchTerm);
     } catch (error) {
       toast.error('ไม่สามารถลบสมาชิกได้');
     }
@@ -188,7 +217,12 @@ export default function MemberList() {
       {/* Members Table */}
       <Card>
         <CardHeader>
-          <CardTitle>รายการสมาชิก ({filteredMembers.length}) - หน้า {currentPage} จาก {lastPage}</CardTitle>
+                     <CardTitle>
+             รายการสมาชิก ({filteredMembers.length}) - หน้า {currentPage} จาก {lastPage}
+             <div className="text-sm text-muted-foreground mt-2">
+               Debug: members={members.length}, currentPage={currentPage}, lastPage={lastPage}, pagination={JSON.stringify(pagination)}
+             </div>
+           </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -267,13 +301,13 @@ export default function MemberList() {
       </Card>
 
       {/* Pagination Controls */}
-      {lastPage > 1 && (
+      {lastPage > 0 && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                แสดง {startIndex + 1}-{Math.min(endIndex, filteredMembers.length)} จาก {filteredMembers.length} รายการ
-              </div>
+                             <div className="text-sm text-muted-foreground">
+                 แสดง {((pagination.page - 1) * pagination.limit) + 1}-{Math.min(pagination.page * pagination.limit, pagination.totalItems)} จาก {pagination.totalItems} รายการ
+               </div>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
@@ -329,10 +363,12 @@ export default function MemberList() {
                   <span className="text-sm">แสดง:</span>
                   <select
                     value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
+                                         onChange={(e) => {
+                       const newLimit = Number(e.target.value);
+                       setItemsPerPage(newLimit);
+                       setCurrentPage(1);
+                       loadMembers(1, newLimit, searchTerm);
+                     }}
                     className="border rounded px-2 py-1 text-sm"
                   >
                     {availablePageSizes.map((size) => (
